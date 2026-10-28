@@ -72,6 +72,7 @@ let currentUser = localStorage.getItem("cartShareUserName") || "";
 let shoppingItems = JSON.parse(localStorage.getItem("cartShareItems")) || [];
 let recentActivities = JSON.parse(localStorage.getItem("cartShareActivities")) || [];
 let unsubscribeItems = null;
+let unsubscribeActivities =null;
 
 function showRoomSection(name) {
     currentUser = name;

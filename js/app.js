@@ -259,6 +259,7 @@ createRoomBtn.addEventListener("click", async function () {
 
         cartSection.classList.remove("d-none");
         listenToRoomItems();
+        listenToRoomActivities();
 
         roomMessage.textContent =
             "Room created successfully! Share this code with others.";
@@ -719,11 +720,51 @@ function displayActivities() {
     });
 }
 
-// Clear recent activities
+// Clear shared room activities
 if (clearActivityBtn) {
-    clearActivityBtn.addEventListener("click", function () {
-        recentActivities = [];
-        displayActivities();
+    clearActivityBtn.addEventListener("click", async function () {
+        const roomCode = localStorage.getItem("cartShareRoomCode");
+
+        if (!roomCode || !auth.currentUser) {
+            alert("Please sign in and join a room first.");
+            return;
+        }
+
+        if (!confirm("Clear recent activities for everyone in this room?")) {
+            return;
+        }
+
+        try {
+            const activitiesRef = collection(
+                db,
+                "rooms",
+                roomCode,
+                "activities"
+            );
+
+            const snapshot = await new Promise((resolve, reject) => {
+                const unsubscribe = onSnapshot(
+                    activitiesRef,
+                    (result) => {
+                        unsubscribe();
+                        resolve(result);
+                    },
+                    reject
+                );
+            });
+
+            await Promise.all(
+                snapshot.docs.map((activityDoc) =>
+                    deleteDoc(activityDoc.ref)
+                )
+            );
+
+            recentActivities = [];
+            displayActivities();
+        } catch (error) {
+            console.error("Error clearing activities:", error);
+            alert("Could not clear activities. Please try again.");
+        }
     });
 }
 

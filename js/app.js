@@ -86,16 +86,26 @@ function showRoomSection(name) {
     });
 }
 
-function saveActivity(message) {
-    recentActivities.unshift(message);
-    recentActivities = recentActivities.slice(0, 50);
+async function saveActivity(message) {
+    const roomCode = localStorage.getItem("cartShareRoomCode");
 
-    localStorage.setItem(
-        "cartShareActivities",
-        JSON.stringify(recentActivities)
-    );
+    if (!roomCode || !auth.currentUser) {
+        console.warn("Cannot save activity: No active room or user.");
+        return;
+    }
 
-    displayActivities();
+    try {
+        await addDoc(
+            collection(db, "rooms", roomCode, "activities"),
+            {
+                message: message,
+                user: currentUser,
+                createdAt: serverTimestamp()
+            }
+        );
+    } catch (error) {
+        console.error("Failed to save activity:", error);
+    }
 }
 // Restore the user's session and previously joined room
 onAuthStateChanged(auth, async function (user) {

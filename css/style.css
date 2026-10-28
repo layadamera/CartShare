@@ -1,0 +1,137 @@
+/* General page styling */
+body {
+margin: 0;
+font-family: Arial, sans-serif;
+background: #f4f7fb;
+color: #263238;
+}
+
+/* Navigation bar */
+.navbar {
+padding: 18px 30px;
+}
+
+.navbar-brand {
+font-size: 25px;
+}
+
+/* Main heading */
+h1 {
+font-weight: 700;
+color: #173b70;
+}
+
+.container {
+max-width: 1100px;
+}
+
+/* Cards */
+.card {
+border: none;
+border-radius: 14px;
+background: #ffffff;
+box-shadow: 0 5px 20px rgba(0, 0, 0, 0.08) !important;
+}
+
+/* Form inputs */
+.form-control {
+padding: 12px;
+border-radius: 8px;
+}
+
+.form-control:focus {
+border-color: #3478f6;
+box-shadow: 0 0 0 3px rgba(52, 120, 246, 0.12);
+}
+
+/* Buttons */
+.btn {
+padding: 11px 16px;
+border-radius: 8px;
+font-weight: 600;
+}
+
+.btn-primary {
+background-color: #2864dc;
+border-color: #2864dc;
+}
+
+.btn-primary:hover {
+background-color: #174bb5;
+}
+
+/* Cart table */
+.table {
+background: white;
+border-radius: 8px;
+overflow: hidden;
+}
+
+.table th,
+.table td {
+padding: 12px;
+}
+
+/* Activity log */
+.list-group-item {
+padding: 12px 16px;
+}
+
+/* Footer */
+footer {
+margin-top: 50px;
+color: #667085;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 576px) {
+.navbar {
+padding: 14px;
+}
+
+.navbar-brand {
+    font-size: 20px;
+}
+
+.navbar span {
+    font-size: 11px;
+}
+
+h1 {
+    font-size: 28px;
+}
+
+.container {
+    padding-left: 16px;
+    padding-right: 16px;
+}
+
+}
+
+/* Print receipt */
+@media print {
+body * {
+visibility: hidden;
+}
+
+#cartSection,
+#cartSection * {
+    visibility: visible;
+}
+
+#cartSection {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+}
+
+#itemForm,
+#activityLog,
+#leaveRoomBtn,
+#printReceiptBtn,
+.btn {
+    display: none !important;
+}
+
+}

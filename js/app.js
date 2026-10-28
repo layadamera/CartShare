@@ -16,8 +16,10 @@ import {
     updateDoc,
     deleteDoc,
     getDoc,
+    getDocs,
     setDoc,
     serverTimestamp
+
 } from "https://www.gstatic.com/firebasejs/13.1.0/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -53,6 +55,7 @@ const copyRoomCodeBtn = document.getElementById("copyRoomCodeBtn");
 const shareWhatsAppBtn = document.getElementById("shareWhatsAppBtn");
 const joinRoomForm = document.getElementById("joinRoomForm");
 const cartSection = document.getElementById("cartSection");
+const leaveRoomBtn = document.getElementById("leaveRoomBtn");
 
 // Shopping elements
 const itemForm = document.getElementById("itemForm");
@@ -88,26 +91,66 @@ function showRoomSection(name) {
 }
 
 async function saveActivity(message) {
+const roomCode = localStorage.getItem("cartShareRoomCode");
+
+if (!auth.currentUser || !roomCode) {
+    return;
+}
+
+try {
+    await addDoc(
+        collection(db, "rooms", roomCode, "activities"),
+        {
+            message: message,
+            user: currentUser,
+            createdAt: serverTimestamp()
+        }
+    );
+} catch (error) {
+    console.error("Error saving activity:", error);
+}
+
+}
+// Listen for real-time activity updates
+function listenToRoomActivities() {
     const roomCode = localStorage.getItem("cartShareRoomCode");
 
-    if (!roomCode || !auth.currentUser) {
-        console.warn("Cannot save activity: No active room or user.");
+    if (unsubscribeActivities) {
+        unsubscribeActivities();
+        unsubscribeActivities = null;
+    }
+
+    if (!auth.currentUser || !roomCode) {
+        recentActivities = [];
+        displayActivities();
         return;
     }
 
-    try {
-        await addDoc(
-            collection(db, "rooms", roomCode, "activities"),
-            {
-                message: message,
-                user: currentUser,
-                createdAt: serverTimestamp()
-            }
-        );
-    } catch (error) {
-        console.error("Failed to save activity:", error);
-    }
+    unsubscribeActivities = onSnapshot(
+        collection(db, "rooms", roomCode, "activities"),
+        function (snapshot) {
+            recentActivities = snapshot.docs
+                .map(function (activityDoc) {
+                    return {
+                        id: activityDoc.id,
+                        ...activityDoc.data()
+                    };
+                })
+                .sort(function (a, b) {
+                    const timeA = a.createdAt?.toMillis?.() || 0;
+                    const timeB = b.createdAt?.toMillis?.() || 0;
+                    return timeB - timeA;
+                })
+                .slice(0, 50);
+
+            displayActivities();
+        },
+        function (error) {
+            console.error("Activity sync error:", error);
+        }
+    );
 }
+
 // Restore the user's session and previously joined room
 onAuthStateChanged(auth, async function (user) {
     if (!user) {
@@ -152,6 +195,7 @@ onAuthStateChanged(auth, async function (user) {
 
                 cartSection.classList.remove("d-none");
                 listenToRoomItems();
+                listenToRoomActivities();
             }
         }
     } catch (error) {
@@ -202,6 +246,7 @@ loginBtn.addEventListener("click", async function () {
     } catch (error) {
         userMessage.textContent = error.message;
         userMessage.className = "text-danger mt-3";
+
     }
 });
 
@@ -324,6 +369,7 @@ joinRoomForm.addEventListener("submit", async function (event) {
 
         cartSection.classList.remove("d-none");
         listenToRoomItems();
+        listenToRoomActivities();
 
         roomMessage.textContent = "You joined the room successfully!";
         roomMessage.className = "text-success mt-3";
@@ -720,17 +766,17 @@ function displayActivities() {
     });
 }
 
-// Clear shared room activities
+// Clear recent activities from Firebase
 if (clearActivityBtn) {
     clearActivityBtn.addEventListener("click", async function () {
         const roomCode = localStorage.getItem("cartShareRoomCode");
 
-        if (!roomCode || !auth.currentUser) {
+        if (!auth.currentUser || !roomCode) {
             alert("Please sign in and join a room first.");
             return;
         }
 
-        if (!confirm("Clear recent activities for everyone in this room?")) {
+        if (!confirm("Clear all recent activities for this room?")) {
             return;
         }
 
@@ -742,29 +788,64 @@ if (clearActivityBtn) {
                 "activities"
             );
 
-            const snapshot = await new Promise((resolve, reject) => {
-                const unsubscribe = onSnapshot(
-                    activitiesRef,
-                    (result) => {
-                        unsubscribe();
-                        resolve(result);
-                    },
-                    reject
-                );
-            });
+            const snapshot = await getDocs(activitiesRef);
 
             await Promise.all(
-                snapshot.docs.map((activityDoc) =>
-                    deleteDoc(activityDoc.ref)
-                )
+                snapshot.docs.map(function (activityDoc) {
+                    return deleteDoc(activityDoc.ref);
+                })
             );
 
             recentActivities = [];
+
+            localStorage.setItem(
+                "cartShareActivities",
+                JSON.stringify(recentActivities)
+            );
+
             displayActivities();
+            alert("Recent activities cleared successfully!");
         } catch (error) {
             console.error("Error clearing activities:", error);
             alert("Could not clear activities. Please try again.");
         }
+    });
+}
+
+// Leave the current shopping room
+if (leaveRoomBtn) {
+    leaveRoomBtn.addEventListener("click", function () {
+        if (!confirm("Are you sure you want to leave this room?")) {
+            return;
+        }
+
+        if (unsubscribeItems) {
+            unsubscribeItems();
+            unsubscribeItems = null;
+        }
+
+        if (unsubscribeActivities) {
+            unsubscribeActivities();
+            unsubscribeActivities = null;
+        }
+
+        localStorage.removeItem("cartShareRoomCode");
+        localStorage.removeItem("cartShareItems");
+        localStorage.removeItem("cartShareActivities");
+
+        shoppingItems = [];
+        recentActivities = [];
+
+        displayItems();
+        displayActivities();
+
+        cartSection.classList.add("d-none");
+        roomStatus.textContent = "No active room";
+        displayRoomCode.textContent = "";
+        roomCodeInput.value = "";
+
+        cartMessage.textContent = "You left the room successfully.";
+        cartMessage.className = "text-success mt-3";
     });
 }
 

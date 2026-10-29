@@ -75,3 +75,16 @@ B.Tech — Computer Science and Engineering
 📂 Source Code
 
 https://github.com/layadamera/CartShare
+📸 Project Screenshots
+
+1. Shopping List
+
+"CartShare Shopping List" (shopping-list.png)
+
+2. Recent Activities
+
+"CartShare Recent Activities" (recent-activities.png)
+
+3. Room Information
+
+"CartShare Room Information" (room-information.png)
